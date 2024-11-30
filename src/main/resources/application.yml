@@ -1,0 +1,33 @@
+server:
+  port: 10099
+  forward-headers-strategy: framework
+  servlet:
+    context-path: /pgk/map/v1.0
+  tomcat:
+    max-swallow-size: 15GB
+    max-http-form-post-size: 15GB
+spring:
+  application:
+    name: pgk-map
+  config:
+    import: optional:file:.env[.properties]
+  servlet:
+    multipart:
+      max-file-size: 15GB
+      max-request-size: 15GB
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:5432/${POSTGRES_DATABASE}?currentSchema=${POSTGRES_SCHEMA}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+  cache:
+    type: redis
+    cache-names: redis-cache
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+      password: ${REDIS_PASSWORD}
+field:
+  dir: ${FIELD_DIR}
+  metadata_filename: metadata.xlsx
+  images_folder_name: images

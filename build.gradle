@@ -1,0 +1,68 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.flywaydb.flyway' version '8.0.1'
+}
+
+group = 'ru.danbeldev'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    runtimeOnly 'org.postgresql:postgresql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    compileOnly 'org.mapstruct:mapstruct:1.6.0'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.0'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    //Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+def envFile = file('.env')
+def envProperties = new Properties()
+envProperties.load(envFile.newDataInputStream())
+
+project.ext {
+    postgresHost = envProperties.getProperty("POSTGRES_HOST")
+    postgresUsername = envProperties.getProperty("POSTGRES_USERNAME")
+    postgresPassword = envProperties.getProperty("POSTGRES_PASSWORD")
+    postgresDatabase = envProperties.getProperty("POSTGRES_DATABASE")
+    postgresSchema = envProperties.getProperty("POSTGRES_SCHEMA")
+}
+
+flyway {
+    url = "jdbc:postgresql://$project.ext.postgresHost:5432/$project.ext.postgresDatabase"
+    user = project.ext.postgresUsername
+    password = project.ext.postgresPassword
+    locations = ['classpath:db/migration']
+    schemas = [project.ext.postgresSchema]
+    baselineOnMigrate = true
+}
