@@ -46,9 +46,10 @@ public class FieldController {
     @PutMapping("{id}")
     public void update(
             @PathVariable Long id,
-            @RequestParam String name
+            @RequestParam String name,
+            @RequestParam LocalDate date
     ) {
-        fieldService.update(id, name);
+        fieldService.update(id, name, date);
     }
 
     @DeleteMapping("{id}")

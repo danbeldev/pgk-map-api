@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.pgk.map.common.exceptions.BadRequestException;
 import ru.pgk.map.features.border.dto.BorderEntityDto;
+import ru.pgk.map.features.border.services.BorderService;
 import ru.pgk.map.features.field.entities.FieldEntity;
 import ru.pgk.map.features.field.repositories.FieldRepository;
 import ru.pgk.map.features.point.entities.PointEntity;
@@ -36,12 +37,16 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static ru.pgk.map.common.FileExtensions.getContentType;
+import static ru.pgk.map.common.FileExtensions.imagesExtensions;
+
 @Service
 @RequiredArgsConstructor
 public class FieldResourceServiceImpl implements FieldResourceService {
 
     private final FieldRepository fieldRepository;
     private final PointRepository pointRepository;
+    private final BorderService borderService;
 
     @Value("${field.dir}")
     private String DIR;
@@ -89,6 +94,7 @@ public class FieldResourceServiceImpl implements FieldResourceService {
 
             xlsxFilePoints = new File(uploadDir.getAbsolutePath() + "/" + METADATA_FILENAME);
             FieldEntity field = createAndSaveField(name, date, folderId);
+            borderService.saveAll(field, borders);
             List<PointEntity> points = parsePointsXLSX(xlsxFilePoints, field, borders);
             savePoints(field, points);
             return field.getId();
@@ -138,7 +144,7 @@ public class FieldResourceServiceImpl implements FieldResourceService {
         try {
             byte[] imageBytes = Files.readAllBytes(imagePath);
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.IMAGE_JPEG);
+            headers.setContentType(getContentType(name));
             return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
         } catch (IOException e) {
             throw new BadRequestException("Ошибка при чтении файла: " + imagePath, e);
@@ -164,6 +170,7 @@ public class FieldResourceServiceImpl implements FieldResourceService {
 
         try (InputStream is = new FileInputStream(zipFile); ZipInputStream zis = new ZipInputStream(is)) {
             ZipEntry entry;
+            List<String> imagesExtensions = imagesExtensions();
 
             while ((entry = zis.getNextEntry()) != null) {
                 if (entry.getName().contains("__MACOSX")) {
@@ -175,11 +182,14 @@ public class FieldResourceServiceImpl implements FieldResourceService {
                     isXlsxFileIsEmpty = true;
                     new File(newXlsxFile.getParent()).mkdirs();
                     Files.copy(zis, newXlsxFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                } else if (entry.getName().endsWith(".JPG")) {
-                    String entryFileName = Paths.get(entry.getName()).getFileName().toString();
-                    File newFile = new File(destDir, IMAGES_FOLDER_NAME + "/" + entryFileName);
-                    new File(newFile.getParent()).mkdirs();
-                    Files.copy(zis, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    final ZipEntry finalEntry = entry;
+                    if (imagesExtensions.stream().anyMatch(e -> finalEntry.getName().toLowerCase().endsWith(e))) {
+                        String entryFileName = Paths.get(entry.getName()).getFileName().toString();
+                        File newFile = new File(destDir, IMAGES_FOLDER_NAME + "/" + entryFileName);
+                        new File(newFile.getParent()).mkdirs();
+                        Files.copy(zis, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
                 }
 
                 zis.closeEntry();
@@ -213,50 +223,57 @@ public class FieldResourceServiceImpl implements FieldResourceService {
             Sheet sheet = workbook.getSheetAt(0);
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) {
-                    continue;
+                try {
+                    System.out.println(row.getRowNum());
+                    if (row.getRowNum() == 0) {
+                        continue;
+                    }
+                    double latitude = row.getCell(0).getNumericCellValue();
+                    System.out.println(latitude);
+                    double longitude = row.getCell(1).getNumericCellValue();
+                    System.out.println(longitude);
+                    if (!isPointInPolygon(latitude, longitude, borders)) {
+                        continue;
+                    }
+
+                    double speedGPS = row.getCell(2).getNumericCellValue();
+                    double rotateGPS = row.getCell(3).getNumericCellValue();
+                    int date = (int) row.getCell(4).getNumericCellValue();
+                    int time = (int) row.getCell(5).getNumericCellValue();
+                    double altitude = row.getCell(6).getNumericCellValue();
+                    double roll = row.getCell(7).getNumericCellValue();
+                    double pitch = row.getCell(8).getNumericCellValue();
+                    int rotate = (int) row.getCell(9).getNumericCellValue();
+                    double vRef = row.getCell(10).getNumericCellValue();
+                    int timeFly = (int) row.getCell(11).getNumericCellValue();
+                    double altitudePVD = row.getCell(12).getNumericCellValue();
+                    double speedPVD = row.getCell(13).getNumericCellValue();
+                    int numFoto1 = (int) row.getCell(14).getNumericCellValue();
+                    String name = row.getCell(15).getStringCellValue();
+
+                    PointEntity point = PointEntity.builder()
+                            .latitude(latitude)
+                            .longitude(longitude)
+                            .speedGPS(speedGPS)
+                            .altitude(altitude)
+                            .rotateGPS(rotateGPS)
+                            .roll(roll)
+                            .pitch(pitch)
+                            .rotate(rotate)
+                            .vRef(vRef)
+                            .timeFly(timeFly)
+                            .altitudePVD(altitudePVD)
+                            .speedPVD(speedPVD)
+                            .numFoto1(numFoto1)
+                            .name(name)
+                            .dateTime(convertToLocalDateTime(date, time))
+                            .field(field)
+                            .build();
+
+                    points.add(point);
+                }catch (Exception ignore) {
+                    System.out.println("Failed");
                 }
-                double latitude = row.getCell(0).getNumericCellValue();
-                double longitude = row.getCell(1).getNumericCellValue();
-                if (!isPointInPolygon(latitude, longitude, borders)) {
-                    continue;
-                }
-
-                double speedGPS = row.getCell(2).getNumericCellValue();
-                double rotateGPS = row.getCell(3).getNumericCellValue();
-                int date = (int) row.getCell(4).getNumericCellValue();
-                int time = (int) row.getCell(5).getNumericCellValue();
-                double altitude = row.getCell(6).getNumericCellValue();
-                double roll = row.getCell(7).getNumericCellValue();
-                double pitch = row.getCell(8).getNumericCellValue();
-                int rotate = (int) row.getCell(9).getNumericCellValue();
-                double vRef = row.getCell(10).getNumericCellValue();
-                int timeFly = (int) row.getCell(11).getNumericCellValue();
-                double altitudePVD = row.getCell(12).getNumericCellValue();
-                double speedPVD = row.getCell(13).getNumericCellValue();
-                int numFoto1 = (int) row.getCell(14).getNumericCellValue();
-                String name = row.getCell(15).getStringCellValue();
-
-                PointEntity point = PointEntity.builder()
-                        .latitude(latitude)
-                        .longitude(longitude)
-                        .speedGPS(speedGPS)
-                        .altitude(altitude)
-                        .rotateGPS(rotateGPS)
-                        .roll(roll)
-                        .pitch(pitch)
-                        .rotate(rotate)
-                        .vRef(vRef)
-                        .timeFly(timeFly)
-                        .altitudePVD(altitudePVD)
-                        .speedPVD(speedPVD)
-                        .numFoto1(numFoto1)
-                        .name(name)
-                        .dateTime(convertToLocalDateTime(date, time))
-                        .field(field)
-                        .build();
-
-                points.add(point);
             }
         }
 

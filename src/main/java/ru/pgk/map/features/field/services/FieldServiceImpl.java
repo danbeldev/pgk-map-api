@@ -7,8 +7,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.pgk.map.common.exceptions.ResourceNotFoundException;
+import ru.pgk.map.features.border.repositories.BorderRepository;
 import ru.pgk.map.features.field.entities.FieldEntity;
 import ru.pgk.map.features.field.repositories.FieldRepository;
+import ru.pgk.map.features.point.repositories.PointRepository;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +21,8 @@ public class FieldServiceImpl implements FieldService {
     private final FieldRepository fieldRepository;
 
     private final FieldResourceService fieldParserService;
+    private final BorderRepository borderRepository;
+    private final PointRepository pointRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,9 +44,10 @@ public class FieldServiceImpl implements FieldService {
 
     @Override
     @Transactional
-    public void update(Long id, String name) {
+    public void update(Long id, String name, LocalDate date) {
         FieldEntity field = getById(id);
         field.setName(name);
+        field.setDate(date);
         fieldRepository.save(field);
     }
 
@@ -48,7 +55,9 @@ public class FieldServiceImpl implements FieldService {
     @Transactional
     public void deleteById(Long id) {
         FieldEntity field = getById(id);
-        fieldParserService.deleteByFolderId(field.getFolderId());
+        borderRepository.deleteAll(field.getBorders());
+        pointRepository.deleteAll(field.getPoints());
         fieldRepository.delete(field);
+        fieldParserService.deleteByFolderId(field.getFolderId());
     }
 }
