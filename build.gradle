@@ -46,23 +46,23 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-def envFile = file('.env')
-def envProperties = new Properties()
-envProperties.load(envFile.newDataInputStream())
-
-project.ext {
-    postgresHost = envProperties.getProperty("POSTGRES_HOST")
-    postgresUsername = envProperties.getProperty("POSTGRES_USERNAME")
-    postgresPassword = envProperties.getProperty("POSTGRES_PASSWORD")
-    postgresDatabase = envProperties.getProperty("POSTGRES_DATABASE")
-    postgresSchema = envProperties.getProperty("POSTGRES_SCHEMA")
-}
-
-flyway {
-    url = "jdbc:postgresql://$project.ext.postgresHost:5432/$project.ext.postgresDatabase"
-    user = project.ext.postgresUsername
-    password = project.ext.postgresPassword
-    locations = ['classpath:db/migration']
-    schemas = [project.ext.postgresSchema]
-    baselineOnMigrate = true
-}
+//def envFile = file('.env')
+//def envProperties = new Properties()
+//envProperties.load(envFile.newDataInputStream())
+//
+//project.ext {
+//    postgresHost = envProperties.getProperty("POSTGRES_HOST")
+//    postgresUsername = envProperties.getProperty("POSTGRES_USERNAME")
+//    postgresPassword = envProperties.getProperty("POSTGRES_PASSWORD")
+//    postgresDatabase = envProperties.getProperty("POSTGRES_DATABASE")
+//    postgresSchema = envProperties.getProperty("POSTGRES_SCHEMA")
+//}
+//
+//flyway {
+//    url = "jdbc:postgresql://$project.ext.postgresHost:5432/$project.ext.postgresDatabase"
+//    user = project.ext.postgresUsername
+//    password = project.ext.postgresPassword
+//    locations = ['classpath:db/migration']
+//    schemas = [project.ext.postgresSchema]
+//    baselineOnMigrate = true
+//}
