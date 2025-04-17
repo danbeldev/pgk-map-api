@@ -1,0 +1,10 @@
+services:
+  pgk-map-api:
+    image: pgk-map-api:latest
+    build:
+      context: .
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: "no"
+    ports:
+      - "10099:10099"
