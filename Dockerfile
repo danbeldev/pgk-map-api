@@ -1,16 +1,16 @@
-FROM bellsoft/liberica-openjdk-debian:24.0.1 AS builder
+FROM bellsoft/liberica-openjdk-alpine:21.0.4 AS builder
 WORKDIR /application
 COPY . .
 RUN --mount=type=cache,target=/root/.gradle  chmod +x gradlew && ./gradlew clean build -x test
 
-FROM bellsoft/liberica-openjre-debian:24.0.1 AS layers
+FROM bellsoft/liberica-openjre-alpine:21.0.4 AS layers
 WORKDIR /application
 COPY --from=builder /application/build/libs/*.jar app.jar
 RUN java -Djarmode=layertools -jar app.jar extract
 
-FROM bellsoft/liberica-openjre-debian:24.0.1
+FROM bellsoft/liberica-openjre-alpine:21.0.4
 VOLUME /tmp
-RUN useradd -ms /bin/bash spring-user
+RUN adduser -S spring-user
 USER spring-user
 COPY --from=layers /application/dependencies/ ./
 COPY --from=layers /application/spring-boot-loader/ ./
