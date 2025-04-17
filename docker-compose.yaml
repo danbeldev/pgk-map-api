@@ -8,3 +8,4 @@ services:
     restart: "no"
     ports:
       - "10099:10099"
+    env_file: .env
