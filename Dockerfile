@@ -17,12 +17,14 @@ FROM bellsoft/liberica-openjre-alpine:21.0.4
 ENV FIELD_DIR=/app/resources \
     TZ=Europe/Moscow
 
-# Создаем директорию для файлов и назначаем права
-RUN adduser -S spring-user && \
+# Создаем пользователя и группу с одинаковым именем
+RUN addgroup -S spring-user && \
+    adduser -S -G spring-user spring-user && \
     mkdir -p ${FIELD_DIR} && \
     chown -R spring-user:spring-user ${FIELD_DIR} && \
     chmod -R 755 ${FIELD_DIR} && \
-    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
 
 VOLUME ${FIELD_DIR}
 USER spring-user
