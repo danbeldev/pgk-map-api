@@ -76,12 +76,12 @@ public class FieldResourceServiceImpl implements FieldResourceService {
         String folderId = UUID.randomUUID().toString();
         File uploadDir = new File(DIR + "/" + folderId);
         uploadDir.mkdirs();
-        long usableSpace = uploadDir.getUsableSpace();
-        long fileSize = file.getSize();
+//        long usableSpace = uploadDir.getUsableSpace();
+//        long fileSize = file.getSize();
 
-        if (usableSpace < fileSize) {
-            throw new BadRequestException("Недостаточно места на диске для загрузки файла");
-        }
+//        if (usableSpace < fileSize) {
+//            throw new BadRequestException("Недостаточно места на диске для загрузки файла");
+//        }
 
         File destinationFile = null;
         File xlsxFilePoints = null;
