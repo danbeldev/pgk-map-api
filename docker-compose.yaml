@@ -9,3 +9,5 @@ services:
     ports:
       - "10099:10099"
     env_file: .env
+    volumes:
+      - ./resources:/app/resources
